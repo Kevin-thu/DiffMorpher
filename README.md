@@ -13,6 +13,9 @@
   </p>
   <br>
   <div align="center">
+        <img src="./assets/teaser.gif", width="500">
+  </div>
+  <div align="center">
     <img src="./assets/Teaser.png", width="700">
   </div>
   <p align="center">
