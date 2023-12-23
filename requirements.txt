@@ -1,0 +1,14 @@
+accelerate==0.23.0
+diffusers==0.17.1
+einops==0.7.0
+gradio==4.7.1
+numpy==1.26.1
+opencv_python==4.5.5.64
+packaging==23.2
+Pillow==10.1.0
+safetensors==0.4.0
+tqdm==4.65.0
+transformers==4.34.1
+torch
+torchvision
+lpips
