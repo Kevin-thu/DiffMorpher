@@ -12,6 +12,26 @@ parser.add_argument(
     help="Pretrained model to use (default: %(default)s)"
 )
 parser.add_argument(
+    "--image_path_0", type=str, default="",
+    help="Path of the first image (default: %(default)s)")
+parser.add_argument(
+    "--prompt_0", type=str, default="",
+    help="Prompt of the second image (default: %(default)s)")
+parser.add_argument(
+    "--image_path_1", type=str, default="",
+    help="Path of the first image (default: %(default)s)")
+parser.add_argument(
+    "--prompt_1", type=str, default="",
+    help="Prompt of the second image (default: %(default)s)")
+parser.add_argument(
+    "--load_lora_path_0", type=str, default="",
+    help="Path of the lora directory of the first image (default: %(default)s)"
+)
+parser.add_argument(
+    "--load_lora_path_1", type=str, default="",
+    help="Path of the lora directory of the second image (default: %(default)s)"
+)
+parser.add_argument(
     "--image_paths", type=str, nargs='*', default=[],
     help="Path of the first image (default: %(default)s)")
 parser.add_argument(
@@ -65,6 +85,12 @@ pipeline = DiffMorpherPipeline.from_pretrained(
     args.model_path, torch_dtype=torch.float32)
 pipeline.to("cuda")
 images = pipeline(
+    img_path_0=args.image_path_0,
+    img_path_1=args.image_path_1,
+    prompt_0=args.prompt_0,
+    prompt_1=args.prompt_1,
+    load_lora_path_0=args.load_lora_path_0,
+    load_lora_path_1=args.load_lora_path_1,
     img_paths=args.image_paths,
     prompts=args.prompts,
     save_lora_dir=args.save_lora_dir,

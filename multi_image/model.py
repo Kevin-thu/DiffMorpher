@@ -435,18 +435,18 @@ class DiffMorpherPipeline(StableDiffusionPipeline):
 
     def __call__(
             self,
-            # img_0=None,
-            # img_1=None,
-            # img_path_0=None,
-            # img_path_1=None,
-            # prompt_0="",
-            # prompt_1="",
-            imgs=None,
+            img_0=None,
+            img_1=None,
+            img_path_0=None,
+            img_path_1=None,
+            prompt_0="",
+            prompt_1="",
+            imgs=[],
             img_paths=None,
             prompts=None,
             save_lora_dir="./lora",
-            # load_lora_path_0=None,
-            # load_lora_path_1=None,
+            load_lora_path_0=None,
+            load_lora_path_1=None,
             load_lora_paths=None,
             lora_steps=200,
             lora_lr=2e-4,
@@ -481,6 +481,11 @@ class DiffMorpherPipeline(StableDiffusionPipeline):
         self.use_adain = use_adain
         self.use_reschedule = use_reschedule
         self.output_path = output_path
+
+        if img_path_0 or img_0:
+            img_paths = [img_path_0, img_path_1]
+            prompts = [prompt_0, prompt_1]
+            load_lora_paths = [load_lora_path_0, load_lora_path_1]
         
         # if img_0 is None:
         #     img_0 = Image.open(img_path_0).convert("RGB")
@@ -491,6 +496,11 @@ class DiffMorpherPipeline(StableDiffusionPipeline):
         #     img_1 = Image.open(img_path_1).convert("RGB")
         # # else:
         # #     img_1 = Image.fromarray(img_1).convert("RGB")
+
+        if img_0:
+            imgs.append(Image.fromarray(img_0).convert("RGB"))
+        if img_1:
+            imgs.append(Image.fromarray(img_1).convert("RGB"))
         if imgs is None:
             imgs = [Image.open(img_path).convert("RGB") for img_path in img_paths]
         if len(prompts) < len(imgs):
