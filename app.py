@@ -45,9 +45,9 @@ def run_diffmorpher(
     run_id = datetime.now().strftime("%H%M") + "_" +  datetime.now().strftime("%Y%m%d")
     os.makedirs(output_path, exist_ok=True)
     morpher_pipeline = DiffMorpherPipeline.from_pretrained(model_path, torch_dtype=torch.float32).to("cuda")
-    if lora_mode == "Fix LoRA 0":
+    if lora_mode == "Fix LoRA A":
         fix_lora = 0
-    elif lora_mode == "Fix LoRA 1":
+    elif lora_mode == "Fix LoRA B":
         fix_lora = 1
     else:
         fix_lora = None
