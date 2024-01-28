@@ -18,6 +18,7 @@ from utils.model_utils import get_img, slerp, do_replace_attn
 from utils.lora_utils import train_lora, load_lora
 from utils.alpha_scheduler import AlphaScheduler
 
+
 class StoreProcessor():
     def __init__(self, original_processor, value_dict, name):
         self.original_processor = original_processor
@@ -37,7 +38,7 @@ class StoreProcessor():
                                       **kwargs)
 
         return res
-    
+
 
 class LoadProcessor():
     def __init__(self, original_processor, name, img0_dict, img1_dict, alpha, beta=0, lamd=0.6):
@@ -50,71 +51,6 @@ class LoadProcessor():
         self.beta = beta
         self.lamd = lamd
         self.id = 0
-
-    def parent_call(
-        self, attn, hidden_states, encoder_hidden_states=None, attention_mask=None, scale=1.0
-    ):
-        residual = hidden_states
-
-        if attn.spatial_norm is not None:
-            hidden_states = attn.spatial_norm(hidden_states)
-
-        input_ndim = hidden_states.ndim
-
-        if input_ndim == 4:
-            batch_size, channel, height, width = hidden_states.shape
-            hidden_states = hidden_states.view(
-                batch_size, channel, height * width).transpose(1, 2)
-
-        batch_size, sequence_length, _ = (
-            hidden_states.shape if encoder_hidden_states is None else encoder_hidden_states.shape
-        )
-        attention_mask = attn.prepare_attention_mask(
-            attention_mask, sequence_length, batch_size)
-
-        if attn.group_norm is not None:
-            hidden_states = attn.group_norm(
-                hidden_states.transpose(1, 2)).transpose(1, 2)
-
-        query = attn.to_q(hidden_states) + scale * \
-            self.original_processor.to_q_lora(hidden_states)
-        query = attn.head_to_batch_dim(query)
-
-        if encoder_hidden_states is None:
-            encoder_hidden_states = hidden_states
-        elif attn.norm_cross:
-            encoder_hidden_states = attn.norm_encoder_hidden_states(
-                encoder_hidden_states)
-
-        key = attn.to_k(encoder_hidden_states) + scale * \
-            self.original_processor.to_k_lora(encoder_hidden_states)
-        value = attn.to_v(encoder_hidden_states) + scale * \
-            self.original_processor.to_v_lora(encoder_hidden_states)
-
-        key = attn.head_to_batch_dim(key)
-        value = attn.head_to_batch_dim(value)
-
-        attention_probs = attn.get_attention_scores(
-            query, key, attention_mask)
-        hidden_states = torch.bmm(attention_probs, value)
-        hidden_states = attn.batch_to_head_dim(hidden_states)
-
-        # linear proj
-        hidden_states = attn.to_out[0](
-            hidden_states) + scale * self.original_processor.to_out_lora(hidden_states)
-        # dropout
-        hidden_states = attn.to_out[1](hidden_states)
-
-        if input_ndim == 4:
-            hidden_states = hidden_states.transpose(
-                -1, -2).reshape(batch_size, channel, height, width)
-
-        if attn.residual_connection:
-            hidden_states = hidden_states + residual
-
-        hidden_states = hidden_states / attn.rescale_output_factor
-
-        return hidden_states
 
     def __call__(self, attn, hidden_states, *args, encoder_hidden_states=None, attention_mask=None, **kwargs):
         # Is self attention
@@ -133,14 +69,10 @@ class LoadProcessor():
                 # cross_map = torch.cat(
                 #     ((1 - self.alpha) * map0, self.alpha * map1), dim=1)
 
-                # res = self.original_processor(attn, hidden_states, *args,
-                #                               encoder_hidden_states=cross_map,
-                #                               attention_mask=attention_mask,
-                #                               temb=temb, **kwargs)
-                res = self.parent_call(attn, hidden_states, *args,
-                                       encoder_hidden_states=cross_map,
-                                       attention_mask=attention_mask,
-                                       **kwargs)
+                res = self.original_processor(attn, hidden_states, *args,
+                                              encoder_hidden_states=cross_map,
+                                              attention_mask=attention_mask,
+                                              **kwargs)
             else:
                 res = self.original_processor(attn, hidden_states, *args,
                                               encoder_hidden_states=encoder_hidden_states,
@@ -170,10 +102,11 @@ class DiffMorpherPipeline(StableDiffusionPipeline):
                  scheduler: KarrasDiffusionSchedulers,
                  safety_checker: StableDiffusionSafetyChecker,
                  feature_extractor: CLIPImageProcessor,
+                 image_encoder=None,
                  requires_safety_checker: bool = True,
-                ):
+                 ):
         super().__init__(vae, text_encoder, tokenizer, unet, scheduler,
-                         safety_checker, feature_extractor, requires_safety_checker)
+                         safety_checker, feature_extractor, image_encoder, requires_safety_checker)
         self.img0_dict = dict()
         self.img1_dict = dict()
 
@@ -457,7 +390,7 @@ class DiffMorpherPipeline(StableDiffusionPipeline):
             use_lora=True,
             use_adain=True,
             use_reschedule=True,
-            output_path = "./results",
+            output_path="./results",
             num_frames=50,
             fix_lora=None,
             progress=tqdm,
@@ -476,12 +409,12 @@ class DiffMorpherPipeline(StableDiffusionPipeline):
         self.use_adain = use_adain
         self.use_reschedule = use_reschedule
         self.output_path = output_path
-        
+
         if img_0 is None:
             img_0 = Image.open(img_path_0).convert("RGB")
         # else:
         #     img_0 = Image.fromarray(img_0).convert("RGB")
-            
+
         if img_1 is None:
             img_1 = Image.open(img_path_1).convert("RGB")
         # else:
@@ -514,6 +447,8 @@ class DiffMorpherPipeline(StableDiffusionPipeline):
                     load_lora_path_1, device="cpu")
             else:
                 lora_1 = torch.load(load_lora_path_1, map_location="cpu")
+        else:
+            lora_0 = lora_1 = None
 
         text_embeddings_0 = self.get_text_embeddings(
             prompt_0, guidance_scale, neg_prompt, batch_size)
@@ -535,8 +470,9 @@ class DiffMorpherPipeline(StableDiffusionPipeline):
         def morph(alpha_list, progress, desc):
             images = []
             if attn_beta is not None:
-
-                self.unet = load_lora(self.unet, lora_0, lora_1, 0 if fix_lora is None else fix_lora)
+                if self.use_lora:
+                    self.unet = load_lora(
+                        self.unet, lora_0, lora_1, 0 if fix_lora is None else fix_lora)
                 attn_processor_dict = {}
                 for k in self.unet.attn_processors.keys():
                     if do_replace_attn(k):
@@ -565,7 +501,9 @@ class DiffMorpherPipeline(StableDiffusionPipeline):
                 if save_intermediates:
                     first_image.save(f"{self.output_path}/{0:02d}.png")
 
-                self.unet = load_lora(self.unet, lora_0, lora_1, 1 if fix_lora is None else fix_lora)
+                if self.use_lora:
+                    self.unet = load_lora(
+                        self.unet, lora_0, lora_1, 1 if fix_lora is None else fix_lora)
                 attn_processor_dict = {}
                 for k in self.unet.attn_processors.keys():
                     if do_replace_attn(k):
@@ -586,7 +524,7 @@ class DiffMorpherPipeline(StableDiffusionPipeline):
                     text_embeddings_1,
                     lora_0,
                     lora_1,
-                    alpha_list[-1], 
+                    alpha_list[-1],
                     False,
                     fix_lora
                 )
@@ -598,7 +536,9 @@ class DiffMorpherPipeline(StableDiffusionPipeline):
 
                 for i in progress.tqdm(range(1, num_frames - 1), desc=desc):
                     alpha = alpha_list[i]
-                    self.unet = load_lora(self.unet, lora_0, lora_1, alpha if fix_lora is None else fix_lora)
+                    if self.use_lora:
+                        self.unet = load_lora(
+                            self.unet, lora_0, lora_1, alpha if fix_lora is None else fix_lora)
                     attn_processor_dict = {}
                     for k in self.unet.attn_processors.keys():
                         if do_replace_attn(k):
@@ -619,7 +559,7 @@ class DiffMorpherPipeline(StableDiffusionPipeline):
                         text_embeddings_1,
                         lora_0,
                         lora_1,
-                        alpha_list[i], 
+                        alpha_list[i],
                         False,
                         fix_lora
                     )
@@ -644,7 +584,7 @@ class DiffMorpherPipeline(StableDiffusionPipeline):
                         text_embeddings_1,
                         lora_0,
                         lora_1,
-                        alpha_list[k], 
+                        alpha_list[k],
                         self.use_lora,
                         fix_lora
                     )

@@ -67,6 +67,9 @@ parser.add_argument(
     "--duration", type=int, default=100,
     help="Duration of each frame (default: %(default)s ms)"
 )
+parser.add_argument(
+    "--no_lora", action="store_true"
+)
 
 args = parser.parse_args()
 
@@ -89,6 +92,7 @@ images = pipeline(
     num_frames=args.num_frames,
     fix_lora=args.fix_lora_value,
     save_intermediates=args.save_inter,
+    use_lora=args.no_lora
 )
 images[0].save(f"{args.output_path}/output.gif", save_all=True,
                append_images=images[1:], duration=args.duration, loop=0)
