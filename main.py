@@ -8,7 +8,7 @@ from model import DiffMorpherPipeline
 
 parser = ArgumentParser()
 parser.add_argument(
-    "--model_path", type=str, default="stabilityai/stable-diffusion-2-1-base",
+    "--model_path", type=str, default="/cpfs01/user/zhangkaiwen/DiffusionMorpher/stabilityai/stable-diffusion-2-1-base",
     help="Pretrained model to use (default: %(default)s)"
 )
 parser.add_argument(
@@ -92,7 +92,7 @@ images = pipeline(
     num_frames=args.num_frames,
     fix_lora=args.fix_lora_value,
     save_intermediates=args.save_inter,
-    use_lora=args.no_lora
+    use_lora=not args.no_lora
 )
 images[0].save(f"{args.output_path}/output.gif", save_all=True,
                append_images=images[1:], duration=args.duration, loop=0)
