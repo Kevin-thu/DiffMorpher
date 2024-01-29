@@ -8,7 +8,7 @@ from model import DiffMorpherPipeline
 
 parser = ArgumentParser()
 parser.add_argument(
-    "--model_path", type=str, default="/cpfs01/user/zhangkaiwen/DiffusionMorpher/stabilityai/stable-diffusion-2-1-base",
+    "--model_path", type=str, default="stabilityai/stable-diffusion-2-1-base",
     help="Pretrained model to use (default: %(default)s)"
 )
 parser.add_argument(

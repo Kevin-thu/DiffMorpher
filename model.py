@@ -13,6 +13,7 @@ from torchvision import transforms
 from transformers import CLIPImageProcessor, CLIPTextModel, CLIPTokenizer
 from diffusers import StableDiffusionPipeline
 from argparse import ArgumentParser
+import inspect
 
 from utils.model_utils import get_img, slerp, do_replace_attn
 from utils.lora_utils import train_lora, load_lora
@@ -55,7 +56,6 @@ class LoadProcessor():
     def __call__(self, attn, hidden_states, *args, encoder_hidden_states=None, attention_mask=None, **kwargs):
         # Is self attention
         if encoder_hidden_states is None:
-            # hardcode timestep
             if self.id < 50 * self.lamd:
                 map0 = self.img0_dict[self.name][self.id]
                 map1 = self.img1_dict[self.name][self.id]
@@ -105,8 +105,14 @@ class DiffMorpherPipeline(StableDiffusionPipeline):
                  image_encoder=None,
                  requires_safety_checker: bool = True,
                  ):
-        super().__init__(vae, text_encoder, tokenizer, unet, scheduler,
-                         safety_checker, feature_extractor, requires_safety_checker)
+        sig = inspect.signature(super().__init__)
+        params = sig.parameters
+        if 'image_encoder' in params:
+            super().__init__(vae, text_encoder, tokenizer, unet, scheduler,
+                             safety_checker, feature_extractor, image_encoder, requires_safety_checker)
+        else:
+            super().__init__(vae, text_encoder, tokenizer, unet, scheduler,
+                             safety_checker, feature_extractor, requires_safety_checker)
         self.img0_dict = dict()
         self.img1_dict = dict()
 
@@ -419,6 +425,7 @@ class DiffMorpherPipeline(StableDiffusionPipeline):
             img_1 = Image.open(img_path_1).convert("RGB")
         # else:
         #     img_1 = Image.fromarray(img_1).convert("RGB")
+
         if self.use_lora:
             print("Loading lora...")
             if not load_lora_path_0:
@@ -467,16 +474,19 @@ class DiffMorpherPipeline(StableDiffusionPipeline):
 
         print("latents shape: ", img_noise_0.shape)
 
+        original_processor = list(self.unet.attn_processors.values())[0]
+
         def morph(alpha_list, progress, desc):
             images = []
             if attn_beta is not None:
                 if self.use_lora:
                     self.unet = load_lora(
                         self.unet, lora_0, lora_1, 0 if fix_lora is None else fix_lora)
+
                 attn_processor_dict = {}
                 for k in self.unet.attn_processors.keys():
                     if do_replace_attn(k):
-                        attn_processor_dict[k] = StoreProcessor(self.unet.attn_processors[k],
+                        attn_processor_dict[k] = StoreProcessor(original_processor,
                                                                 self.img0_dict, k)
                     else:
                         attn_processor_dict[k] = self.unet.attn_processors[k]
@@ -507,7 +517,7 @@ class DiffMorpherPipeline(StableDiffusionPipeline):
                 attn_processor_dict = {}
                 for k in self.unet.attn_processors.keys():
                     if do_replace_attn(k):
-                        attn_processor_dict[k] = StoreProcessor(self.unet.attn_processors[k],
+                        attn_processor_dict[k] = StoreProcessor(original_processor,
                                                                 self.img1_dict, k)
                     else:
                         attn_processor_dict[k] = self.unet.attn_processors[k]
@@ -539,11 +549,12 @@ class DiffMorpherPipeline(StableDiffusionPipeline):
                     if self.use_lora:
                         self.unet = load_lora(
                             self.unet, lora_0, lora_1, alpha if fix_lora is None else fix_lora)
+
                     attn_processor_dict = {}
                     for k in self.unet.attn_processors.keys():
                         if do_replace_attn(k):
                             attn_processor_dict[k] = LoadProcessor(
-                                self.unet.attn_processors[k], k, self.img0_dict, self.img1_dict, alpha, attn_beta, lamd)
+                                original_processor, k, self.img0_dict, self.img1_dict, alpha, attn_beta, lamd)
                         else:
                             attn_processor_dict[k] = self.unet.attn_processors[k]
 
@@ -606,7 +617,8 @@ class DiffMorpherPipeline(StableDiffusionPipeline):
                 alpha_scheduler.from_imgs(images_pt)
                 alpha_list = alpha_scheduler.get_list()
                 print(alpha_list)
-                images = morph(alpha_list, progress, "Reschedule...")
+                images = morph(alpha_list, progress, "Reschedule..."
+                               )
             else:
                 alpha_list = list(torch.linspace(0, 1, num_frames))
                 print(alpha_list)
