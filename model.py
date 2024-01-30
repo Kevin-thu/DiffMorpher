@@ -486,8 +486,12 @@ class DiffMorpherPipeline(StableDiffusionPipeline):
                 attn_processor_dict = {}
                 for k in self.unet.attn_processors.keys():
                     if do_replace_attn(k):
-                        attn_processor_dict[k] = StoreProcessor(original_processor,
-                                                                self.img0_dict, k)
+                        if self.use_lora:
+                            attn_processor_dict[k] = StoreProcessor(self.unet.attn_processors[k],
+                                                                    self.img0_dict, k)
+                        else:
+                            attn_processor_dict[k] = StoreProcessor(original_processor,
+                                                                    self.img0_dict, k)
                     else:
                         attn_processor_dict[k] = self.unet.attn_processors[k]
                 self.unet.set_attn_processor(attn_processor_dict)
@@ -517,8 +521,12 @@ class DiffMorpherPipeline(StableDiffusionPipeline):
                 attn_processor_dict = {}
                 for k in self.unet.attn_processors.keys():
                     if do_replace_attn(k):
-                        attn_processor_dict[k] = StoreProcessor(original_processor,
-                                                                self.img1_dict, k)
+                        if self.use_lora:
+                            attn_processor_dict[k] = StoreProcessor(self.unet.attn_processors[k],
+                                                                    self.img1_dict, k)
+                        else:
+                            attn_processor_dict[k] = StoreProcessor(original_processor,
+                                                                    self.img1_dict, k)
                     else:
                         attn_processor_dict[k] = self.unet.attn_processors[k]
 
@@ -553,8 +561,12 @@ class DiffMorpherPipeline(StableDiffusionPipeline):
                     attn_processor_dict = {}
                     for k in self.unet.attn_processors.keys():
                         if do_replace_attn(k):
-                            attn_processor_dict[k] = LoadProcessor(
-                                original_processor, k, self.img0_dict, self.img1_dict, alpha, attn_beta, lamd)
+                            if self.use_lora:
+                                attn_processor_dict[k] = LoadProcessor(
+                                    self.unet.attn_processors[k], k, self.img0_dict, self.img1_dict, alpha, attn_beta, lamd)
+                            else:
+                                attn_processor_dict[k] = LoadProcessor(
+                                    original_processor, k, self.img0_dict, self.img1_dict, alpha, attn_beta, lamd)
                         else:
                             attn_processor_dict[k] = self.unet.attn_processors[k]
 
