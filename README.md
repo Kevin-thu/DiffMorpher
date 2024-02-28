@@ -1,5 +1,6 @@
 <p align="center">
   <h1 align="center">DiffMorpher: Unleashing the Capability of Diffusion Models for Image Morphing</h1>
+  <h3 align="center">CVPR 2024</h3>
   <p align="center">
     <a href="https://kevin-thu.github.io/homepage/"><strong>Kaiwen Zhang</strong></a>
     &nbsp;&nbsp;
