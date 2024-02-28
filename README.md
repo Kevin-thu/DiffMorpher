@@ -39,7 +39,7 @@
   <a href="https://huggingface.co/spaces/Kevin-thu/DiffMorpher"><img alt="Huggingface" src="https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-DiffMorpher-orange"></a>
 </p>
 
-Great thanks to [OpenXLab](https://openxlab.org.cn/home) for the NVIDIA A100 GPU support!
+<!-- Great thanks to [OpenXLab](https://openxlab.org.cn/home) for the NVIDIA A100 GPU support! -->
 
 ## Requirements
 To install the requirements, run the following in your environment first:
