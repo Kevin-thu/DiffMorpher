@@ -471,40 +471,30 @@ class DiffMorpherPipeline(StableDiffusionPipeline):
             save_intermediates=False,
             **kwds):
 
-        # if isinstance(prompt, list):
-        #     batch_size = len(prompt)
-        # elif isinstance(prompt, str):
-        #     if batch_size > 1:
-        #         prompt = [prompt] * batch_size
+
         self.scheduler.set_timesteps(num_inference_steps)
         self.use_lora = use_lora
         self.use_adain = use_adain
         self.use_reschedule = use_reschedule
         self.output_path = output_path
 
-        if img_path_0 or img_0:
-            img_paths = [img_path_0, img_path_1]
-            prompts = [prompt_0, prompt_1]
-            load_lora_paths = [load_lora_path_0, load_lora_path_1]
-        
-        # if img_0 is None:
-        #     img_0 = Image.open(img_path_0).convert("RGB")
-        # # else:
-        # #     img_0 = Image.fromarray(img_0).convert("RGB")
-            
-        # if img_1 is None:
-        #     img_1 = Image.open(img_path_1).convert("RGB")
-        # # else:
-        # #     img_1 = Image.fromarray(img_1).convert("RGB")
 
-        if img_0:
-            imgs.append(Image.fromarray(img_0).convert("RGB"))
-        if img_1:
-            imgs.append(Image.fromarray(img_1).convert("RGB"))
-        if imgs is None:
-            imgs = [Image.open(img_path).convert("RGB") for img_path in img_paths]
-        if len(prompts) < len(imgs):
-            prompts += ["" for _ in range(len(imgs) - len(prompts))]
+        imgs = [Image.open(img_path).convert("RGB") for img_path in img_paths]
+        assert len(prompts) == len(imgs)
+        
+        # if img_path_0 or img_0:
+        #     img_paths = [img_path_0, img_path_1]
+        #     prompts = [prompt_0, prompt_1]
+        #     load_lora_paths = [load_lora_path_0, load_lora_path_1]
+        
+        # if img_0:
+        #     imgs.append(Image.fromarray(img_0).convert("RGB"))
+        # if img_1:
+        #     imgs.append(Image.fromarray(img_1).convert("RGB"))
+        # if imgs is None:
+        #     imgs = [Image.open(img_path).convert("RGB") for img_path in img_paths]
+        # if len(prompts) < len(imgs):
+        #     prompts += ["" for _ in range(len(imgs) - len(prompts))]
 
         if self.use_lora:
             loras = []
