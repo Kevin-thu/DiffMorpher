@@ -15,7 +15,7 @@
   <br>
 
   <p align="center">
-    <sep>✉</sep>Corresponding Autor
+    <sep>✉</sep>Corresponding Author
   </p>
 
   <div align="center">
