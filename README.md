@@ -110,6 +110,10 @@ python main.py \
   --use_adain --use_reschedule --save_inter
 ```
 
+## MorphBench
+To evaluate the effectiveness of our methods, we present *MorphBench*, the first benchmark dataset for assessing image morphing of general objects. You can download the dataset from [Google Drive](https://drive.google.com/file/d/1NWPzJhOgP-udP_wYbd0selRG4cu8xsu4/view?usp=sharing) or [Baidu Netdisk](https://pan.baidu.com/s/1J3xE3OJdEhKyoc1QObyYaA?pwd=putk).
+
+
 ## License
 The code related to the DiffMorpher algorithm is licensed under [LICENSE](LICENSE.txt). 
 
